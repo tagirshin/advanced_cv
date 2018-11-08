@@ -74,9 +74,3 @@ class TransformationOut(BaseCrossValidator):
                         else:
                             test.append(c)
             yield np.array(train), np.array(test)
-
-kek = [6, 6, 5, 5, 4, 4, 3, 3, 2, 1]
-#Если сумма больших элементов превышает сумму маленьких в 5 раз, то они считаются большими
-
-
-1300 и 4000
