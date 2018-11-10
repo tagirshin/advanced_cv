@@ -1,5 +1,5 @@
 from sklearn.model_selection import BaseCrossValidator
-from CGRtools.preparer import CGRpreparer
+from CGRtools.preparer.CGRpreparer import condense
 from collections import defaultdict
 from random import shuffle as r_shuffle
 import numpy as np
@@ -13,15 +13,12 @@ class TransformationOut(BaseCrossValidator):
         self.n_repeats = n_repeats
 
     def split(self, X, y=None, groups=None):
-        cgr = CGRpreparer()
         X, y, groups = indexable(X, y, groups)
-        cgrs = [cgr.condense(r) for r in X]
+        cgrs = [condense(r) for r in X]
 
-        structure_condition = defaultdict(set)
         condition_structure = defaultdict(set)
 
         for structure, condition in zip(cgrs, groups):
-            structure_condition[structure].add(condition)
             condition_structure[condition].add(structure)
 
         train_data = defaultdict(list)
@@ -37,8 +34,8 @@ class TransformationOut(BaseCrossValidator):
                              " than the number of transformations: %d."
                              % (self.n_splits, len(train_data)))
 
-        structures_weight = {x: len(y) for x, y in train_data.items()}
-        train_indexes = list(train_data.keys())
+        structures_weight = sorted({x: len(y) for x, y in train_data.items()}, key=lambda z: z[1])
+        train_indexes = []
 
         fold_mean_size = len(cgrs) // self.n_splits
 
@@ -62,15 +59,15 @@ class TransformationOut(BaseCrossValidator):
 
             for i in fold:
                 train_index = []
-                test = []
+                test_index = []
                 for j in range(self.n_splits):
                     if not j == i:
-                        train.extend(fold[j])
+                        train_index.extend(fold[j])
                     else:
                         for c in fold[j]:
                             if groups is not None:
                                 if c in test_data:
-                                    test.append(c)
+                                    test_index.append(c)
                             else:
-                                test.append(c)
-                yield train_index, test_index
+                                test_index.append(c)
+                yield np.array(train_index), np.array(test_index)
