@@ -1,7 +1,8 @@
 from sklearn.model_selection import BaseCrossValidator
-from CGRtools.preparer.CGRpreparer import condense
+from CGRtools.preparer import CGRpreparer
 from collections import defaultdict
 from random import shuffle as r_shuffle
+from random import random
 import numpy as np
 from sklearn.utils.validation import indexable
 
@@ -14,7 +15,8 @@ class TransformationOut(BaseCrossValidator):
 
     def split(self, X, y=None, groups=None):
         X, y, groups = indexable(X, y, groups)
-        cgrs = [condense(r) for r in X]
+        cgr = CGRpreparer()
+        cgrs = [cgr.condense(r) for r in X]
 
         condition_structure = defaultdict(set)
 
@@ -34,37 +36,37 @@ class TransformationOut(BaseCrossValidator):
                              " than the number of transformations: %d."
                              % (self.n_splits, len(train_data)))
 
-        structures_weight = sorted({x: len(y) for x, y in train_data.items()}, key=lambda z: z[1])
-        train_indexes = []
-
+        structures_weight = sorted({x: len(y) for x, y in train_data.items()}, key=lambda z: z[1], reverse=True)
         fold_mean_size = len(cgrs) // self.n_splits
 
+        folds = [[] for _ in range(self.n_splits)]
+
+
         for idx in range(self.n_repeats):
-            if self.shuffle:
-                r_shuffle(train_indexes)
-            fold_len = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
-            n = 0
-            fold = {}
+            for i in structures_weight:
+                if self.shuffle:
+                    r_shuffle(folds)
+                for n, fold in enumerate(folds):
+                    if len(fold) + i[1] <= fold_mean_size:
+                        fold.extend(train_data[i[0]])
+                        break
+                    else:
+                        roulette_param = (len(train_data[i[0]]) - fold_mean_size + len(fold)) / len(train_data[i[0]])
+                        if random() > roulette_param:
+                            fold.extend(train_data[i[0]])
+                            break
+                        elif n == 4:
+                            fold.extend(train_data[i[0]])
 
-            for i in train_indexes:
-                if fold_len[n] + structures_weight[i] <= fold_mean_size:
-                    fold.setdefault(n, []).extend(train_data[i])
-                    fold_len[n] += structures_weight[i]
-                elif n == self.n_splits - 1:
-                    break
-                else:
-                    n += 1
-                    fold.setdefault(n, []).extend(train_data[i])
-                    fold_len[n] += structures_weight[i]
 
-            for i in fold:
+            for i in folds:
                 train_index = []
                 test_index = []
                 for j in range(self.n_splits):
                     if not j == i:
-                        train_index.extend(fold[j])
+                        train_index.extend(folds[j])
                     else:
-                        for c in fold[j]:
+                        for c in folds[j]:
                             if groups is not None:
                                 if c in test_data:
                                     test_index.append(c)
