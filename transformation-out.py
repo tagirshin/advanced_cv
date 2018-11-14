@@ -39,10 +39,8 @@ class TransformationOut(BaseCrossValidator):
         structures_weight = sorted({x: len(y) for x, y in train_data.items()}, key=lambda z: z[1], reverse=True)
         fold_mean_size = len(cgrs) // self.n_splits
 
-        folds = [[] for _ in range(self.n_splits)]
-
-
         for idx in range(self.n_repeats):
+            folds = [[] for _ in range(self.n_splits)]
             for i in structures_weight:
                 if self.shuffle:
                     r_shuffle(folds)
@@ -72,4 +70,4 @@ class TransformationOut(BaseCrossValidator):
                                     test_index.append(c)
                             else:
                                 test_index.append(c)
-                yield np.array(train_index), np.array(test_index)
+            yield np.array(train_index), np.array(test_index)
