@@ -76,14 +76,14 @@ class SolventOut(BaseCrossValidator):
                 test_data.append(n)
 
         for condition, indexes in train_data.items():
-            test_index = []
-            for index in indexes:
-                if index in test_data:
-                    test_index.append(index)
+
+            test_index = [index for index in indexes if index in test_data]
             if len(test_index) == 0:
                 continue
+
             train_index = []
-            conditions = train_data.keys()-condition
-            for c in conditions:
-                train_index.extend(train_data[c])
+            for c in train_data.keys():
+                if not c == condition:
+                    train_index.extend(train_data[c])
+
             yield array(train_index), array(test_index)
